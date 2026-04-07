@@ -5,7 +5,6 @@ const userRoutes = require("./routes/userRoutes");
 const chatRoutes = require("./routes/chatRoutes");
 const messageRoutes = require("./routes/messageRoutes");
 const { notFound, errorHandler } = require("./middleware/errorMiddleware");
-const path = require("path");
 
 // config
 dotenv.config();
@@ -16,44 +15,32 @@ const app = express();
 // middleware
 app.use(express.json());
 
-// routes
+// ---------------- API ROUTES ----------------
 app.use("/api/user", userRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/message", messageRoutes);
 
-// --------------------------deployment------------------------------
-const __dirname1 = path.resolve();
+// ---------------- ROOT ROUTE ----------------
+app.get("/", (req, res) => {
+  res.send("API is running...");
+});
 
-if (process.env.NODE_ENV === "production") {
-  app.use(express.static(path.join(__dirname1, "/frontend/build")));
-
-  app.get("*", (req, res) =>
-    res.sendFile(path.resolve(__dirname1, "frontend", "build", "index.html"))
-  );
-} else {
-  app.get("/", (req, res) => {
-    res.send("API is running..");
-  });
-}
-// --------------------------deployment------------------------------
-
-// error handling middleware
+// ---------------- ERROR HANDLING ----------------
 app.use(notFound);
 app.use(errorHandler);
 
-// PORT safety
+// ---------------- SERVER START ----------------
 const PORT = process.env.PORT || 5000;
 
-// server start
 const server = app.listen(PORT, () => {
   console.log(`Server running on PORT ${PORT}`);
 });
 
-// --------------------------Socket.io------------------------------
+// ---------------- SOCKET.IO ----------------
 const io = require("socket.io")(server, {
   pingTimeout: 60000,
   cors: {
-    origin: "http://localhost:3000",
+    origin: "*", // 🔥 allow all (safe for now)
   },
 });
 
@@ -63,7 +50,7 @@ io.on("connection", (socket) => {
   // setup user
   socket.on("setup", (userData) => {
     socket.join(userData._id);
-    socket.userData = userData; // store user data
+    socket.userData = userData;
     socket.emit("connected");
   });
 
